@@ -1,0 +1,103 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#172554">
+<title>智能文件工厂</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f1f5f9;color:#172033;font-family:Arial,sans-serif}
+header{background:#172554;color:white;padding:24px 18px}
+header h1{margin:0 0 8px;font-size:25px}
+header p{margin:0;color:#cbd5e1;font-size:14px}
+main{max-width:760px;margin:auto;padding:18px}
+.card{background:white;border-radius:15px;padding:18px;margin-bottom:16px;box-shadow:0 2px 12px #0f172a0c}
+h2{font-size:18px;margin:0 0 14px}
+.tools{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.tool{background:#eff6ff;border-radius:12px;padding:15px;text-align:center;color:#1e40af;font-size:14px}
+button,.upload{display:block;width:100%;border:0;border-radius:10px;padding:13px;background:#2563eb;color:white;font-size:15px;margin-top:12px;text-align:center}
+input{display:none}
+#preview{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:14px}
+#preview img{width:100%;border-radius:8px;object-fit:contain;background:#e2e8f0}
+.muted{color:#64748b;font-size:13px}
+footer{text-align:center;color:#64748b;padding:20px;font-size:12px}
+</style>
+</head>
+<body>
+<header>
+<h1>📁 智能文件工厂</h1>
+<p>扫描 · PDF · 图片 · 文件转换</p>
+</header>
+<main>
+<section class="card">
+<h2>📂 图片转 PDF</h2>
+<p class="muted">选择一张或多张图片，合成为一个 PDF 文件。</p>
+<label class="upload" for="files">＋ 选择图片</label>
+<input id="files" type="file" accept="image/*" multiple>
+<div id="preview"></div>
+<button id="make">生成 PDF</button>
+<p class="muted" id="status">请先选择图片。</p>
+</section>
+<section class="card">
+<h2>🛠️ 文件处理工具</h2>
+<div class="tools">
+<div class="tool">📄 PDF 合并<br><small>即将开发</small></div>
+<div class="tool">✂️ PDF 拆分<br><small>即将开发</small></div>
+<div class="tool">🗜️ PDF 压缩<br><small>即将开发</small></div>
+<div class="tool">🔍 OCR 文字识别<br><small>即将开发</small></div>
+<div class="tool">🖼️ 图片转换<br><small>即将开发</small></div>
+<div class="tool">📝 Word 导出<br><small>即将开发</small></div>
+</div>
+</section>
+</main>
+<footer>智能文件工厂 Smart File Factory · 第一版测试</footer>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
+<script>
+const filesInput=document.getElementById('files');
+const preview=document.getElementById('preview');
+const status=document.getElementById('status');
+let selected=[];
+filesInput.addEventListener('change',()=>{
+ selected=Array.from(filesInput.files);
+ preview.innerHTML='';
+ selected.forEach(file=>{
+  const img=document.createElement('img');
+  img.src=URL.createObjectURL(file);
+  preview.appendChild(img);
+ });
+ status.textContent='已选择 '+selected.length+' 张图片。';
+});
+document.getElementById('make').addEventListener('click',async()=>{
+ if(!selected.length){status.textContent='请先选择图片。';return;}
+ if(!window.jspdf){status.textContent='PDF 工具加载失败，请检查网络后重试。';return;}
+ const {jsPDF}=window.jspdf;
+ const pdf=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+ status.textContent='正在生成 PDF...';
+ try{
+  for(let i=0;i<selected.length;i++){
+   if(i>0)pdf.addPage();
+   const data=await new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=()=>resolve(reader.result);
+    reader.onerror=reject;
+    reader.readAsDataURL(selected[i]);
+   });
+   const img=new Image();
+   await new Promise((resolve,reject)=>{
+    img.onload=resolve;img.onerror=reject;img.src=data;
+   });
+   const ratio=Math.min(190/img.width,277/img.height);
+   const w=img.width*ratio,h=img.height*ratio;
+   pdf.addImage(data,'JPEG',(210-w)/2,(297-h)/2,w,h);
+  }
+  pdf.save('智能文件工厂.pdf');
+  status.textContent='PDF 已生成！';
+ }catch(e){
+  status.textContent='生成失败，请更换图片后重试。';
+ }
+});
+</script>
+</body>
+</html>
